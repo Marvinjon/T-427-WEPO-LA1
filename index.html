@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FritosJS Testing</title>
+</head>
+<body>
+    <form id="my-form">
+        <input type="text" name="username" />
+        <input type="password" name="password" />
+    </form>
+
+    <div class="container">
+        <div class="items">
+            <div class="item">
+                <img src="" alt="" class="item-image" />
+            </div>
+            <div class="item">
+                <img src="" alt="" class="item-image" />
+            </div>
+        </div>
+    </div>
+
+    <div class="moveable-item">I am about to move!</div>
+
+    <script src="fritos.js"></script>
+    <script>
+        const inputs = fritos('#my-form input');
+        console.log(inputs); // Should log a NodeList of all input elements inside #my-form
+
+        fritos('input').parent('form').onEvent('input', function(event) {
+            console.log('Input event triggered:', event.target.value);
+        });
+
+        // const parent = fritos('input[type="password"]').parent();
+        // console.log(parent); // Should log the parent form element
+
+        // const unknownParent = fritos('#password').parent('div');
+        // console.log(unknownParent); // Should log an empty result set
+    </script>
+</body>
+</html>

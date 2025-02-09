@@ -1,12 +1,22 @@
 const fritos = (function() {
     // Constructor function for fritos
-    function Fritos(selector) {
-        this.elements = document.querySelectorAll(selector);
+    function Fritos(query) {
+        this.elements = document.querySelectorAll(query);
     }
 
     // Method to return a list of all parents of the elements within the result set
-    Fritos.prototype.parent = function(cssProperties, animationOptions) {
-        // Implementation goes here
+    Fritos.prototype.parent = function(selector = null) {
+        const parents = [...new Set(this.elements.map(el => el.parentNode).filter(p => p))];
+
+        if (!selector) return new Fritos(parents);
+
+        return new Fritos(
+            parents.filter(p =>
+                selector.startsWith('#') ? p.id === selector.slice(1) :
+                selector.startsWith('.') ? p.classList.contains(selector.slice(1)) :
+                p.tagName.toLowerCase() === selector.toLowerCase()
+            )
+        );
     };
 
     // Method to return a list of all ancestors of the elements within the result set
