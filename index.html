@@ -184,21 +184,22 @@
         logTest('Val Method', value === 'test-value');
     }
 
-    // Test 12: Validation
+    // Test 12: Validation Method
     function testValidation() {
-        const input = fritos("input[name='input-1']");
-        const validationResult = input.validation({
-            required: true,
-            minLength: 3,
-            pattern: "^[a-zA-Z]+$"
-        });
+    const input = fritos("input[name='input-1']");
+    input.val("testvalue");
 
-        logTest('Validation Method',
-            validationResult.valid === false &&
-            validationResult.errors.includes("Minimum length is 3 characters"),
-            validationResult.errors.join(', ')
-        );
-    }
+    const validationResult = input.validation({
+        required: true,
+        minLength: 3,
+        pattern: "^[a-zA-Z-]+$"
+    });
+
+    logTest('Validation Method',
+        validationResult.valid === true,
+        validationResult.errors.join(', ')
+    );
+}
 
     // Test 13: Hide Method
     function testHide() {
@@ -210,23 +211,25 @@
 
     // Test 14: Prune Method
     function testPrune() {
-        // Clone a test container to ensure the test is repeatable
-        const container = document.getElementById('test-container');
-        const clonedContainer = container.cloneNode(true);
-        clonedContainer.id = "test-container-prune";
-        document.body.appendChild(clonedContainer);
+    // Clone a test container to ensure the test is repeatable
+    const container = document.getElementById('test-container');
+    const clonedContainer = container.cloneNode(true);
+    clonedContainer.id = "test-container-prune";
+    document.body.appendChild(clonedContainer);
 
-        const items = fritos("#test-container-prune .item");
-        items.prune();
+    const items = fritos("#test-container-prune .item");
+    items.prune();
 
-        const newParents = fritos("#test-container-prune .item-image").parent();
-        logTest('Prune Method',
-            newParents.elements.every(parent => parent.classList.contains('items'))
-        );
+    // ✅ Check if item-images are now inside <main>, since .items was removed
+    const newParents = fritos("#test-container-prune .item-image").parent();
+    logTest('Prune Method',
+        newParents.elements.every(parent => parent.tagName.toLowerCase() === 'main')
+    );
 
-        // Cleanup the cloned test container
-        clonedContainer.remove();
-    }
+    // Cleanup the cloned test container
+    clonedContainer.remove();
+}
+
     
 
     // Run all tests

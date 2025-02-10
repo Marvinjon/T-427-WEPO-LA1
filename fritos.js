@@ -164,15 +164,17 @@ const fritos = (function() {
         }
     
         const value = element.value.trim();
+        console.log("Validating:", JSON.stringify(value)); // Log as string to catch hidden characters
+    
         const errors = [];
     
-        // Required check first (Prevents empty values from failing pattern validation)
+        // Required check
         if (rules.required && value === "") {
             errors.push("This field is required");
         }
     
         // Min length check
-        if (rules.minLength && value.length < rules.minLength && value !== "") {
+        if (rules.minLength && value.length < rules.minLength) {
             errors.push(`Minimum length is ${rules.minLength} characters`);
         }
     
@@ -181,11 +183,13 @@ const fritos = (function() {
             errors.push(`Maximum length is ${rules.maxLength} characters`);
         }
     
-        // Pattern check (Only runs if value is non-empty)
+        // Pattern check (Only if value is non-empty)
         if (rules.pattern && value !== "") {
             try {
                 const regex = new RegExp(rules.pattern);
-                if (!regex.test(value)) {
+                const match = regex.test(value);
+                console.log(`Testing pattern: ${rules.pattern} against value: ${JSON.stringify(value)} - Match: ${match}`); // Debug regex match
+                if (!match) {
                     errors.push("Invalid format");
                 }
             } catch (e) {
@@ -193,11 +197,14 @@ const fritos = (function() {
             }
         }
     
+        console.log("Validation Result:", { valid: errors.length === 0, errors });
+    
         return {
             valid: errors.length === 0,
             errors: errors
         };
-    };    
+    };
+    
     
     Fritos.prototype.hide = function () {
         this.elements.forEach(element => {
@@ -207,19 +214,36 @@ const fritos = (function() {
     };
 
     Fritos.prototype.prune = function () {
+        const parents = new Set();
+    
         this.elements.forEach(element => {
             const parent = element.parentNode;
-            if (parent && parent.parentNode) {
-                while (element.firstChild) {
-                    parent.parentNode.insertBefore(element.firstChild, parent);
+            if (!parent) {
+                return;
+            }
+            const grandparent = parent.parentNode;
+            if (!grandparent) {
+                return;
+            }
+
+            [...element.childNodes].forEach(child => {
+                if (child.nodeType === 1) {
+                    grandparent.insertBefore(child, parent);
                 }
-                parent.remove();
+            });
+    
+            parents.add(parent);
+        });
+
+        parents.forEach(parent => {
+            if (parent.parentNode) {
+                parent.parentNode.removeChild(parent);
             }
         });
+    
         return this;
     };
-    
-    
+
     
     // Method to raise elements
     Fritos.prototype.raise = function(level = 1) {
