@@ -17,30 +17,29 @@
     <div id="test-container" class="test-container">
         <!-- Parent/Ancestor Test -->
         <main>
-            <div class="items">
-                <div class="item">
-                    <img src="placeholder.jpg" alt="" class="item-image" />
-                </div>
-                <div class="item">
-                    <img src="placeholder.jpg" alt="" class="item-image" />
-                </div>
+        <div class="items">
+            <div class="item">
+            <img src="placeholder.jpg" alt="" class="item-image" />
             </div>
-        </main>
+            <div class="item">
+            <img src="placeholder.jpg" alt="" class="item-image" />
+            </div>
+        </div>
+    </main>
 
-        <!-- Animation Test -->
-        <div class="moveable-item">I am about to move!</div>
+    <!-- Animation Test -->
+    <div class="moveable-item">I am about to move!</div>
 
-        <!-- Form Tests -->
-        <form id="test-form">
-            <div class="form-group">
-                <input type="text" name="input-1" class="test-input" />
-            </div>
-            <div class="form-group">
-                <input type="text" name="input-2" class="test-input" />
-            </div>
-            <div class="form-group">
-                <input type="text" name="input-3" class="test-input" />
-            </div>
+    <!-- Form Tests -->
+    <form id="test-form">
+        <!-- Group the first two inputs in one container -->
+        <div class="form-group">
+            <input type="text" name="input-1" class="test-input" />
+            <input type="text" name="input-2" class="test-input" />
+        </div>
+        <div class="form-group">
+            <input type="text" name="input-3" class="test-input" />
+        </div>
         </form>
     </div>
 
@@ -51,131 +50,157 @@
     <script type="module">
         import fritos from './fritos.js';
 
-        // Utility function to log test results
-        function logTest(name, passed, message = '') {
-            const results = document.getElementById('test-results');
-            const result = document.createElement('div');
-            result.className = passed ? 'success' : 'error';
-            result.textContent = `${name}: ${passed ? 'PASSED' : 'FAILED'} ${message}`;
-            results.appendChild(result);
+    // Utility function to log test results
+    function logTest(name, passed, message = '') {
+        const results = document.getElementById('test-results');
+        const result = document.createElement('div');
+        result.className = passed ? 'success' : 'error';
+        result.textContent = `${name}: ${passed ? 'PASSED' : 'FAILED'} ${message}`;
+        results.appendChild(result);
         }
 
         // Test 1: Query Selector
         function testQuerySelector() {
-            const inputs = fritos('.test-input');
-            logTest('Query Selector', inputs.elements.length === 3);
-        }
+        const inputs = fritos('.test-input');
+        logTest('Query Selector', inputs.elements.length === 3);
+    }
 
-        // Test 2: Method Chaining
-        function testChaining() {
-            let chainWorked = true;
-            try {
-                fritos('input')
-                    .parent('form')
-                    .find('.test-input')
-                    .val('test');
-            } catch (e) {
-                chainWorked = false;
-            }
-            logTest('Method Chaining', chainWorked);
+    // Test 2: Method Chaining
+    function testChaining() {
+        let chainWorked = true;
+        try {
+            fritos('input')
+            .parent('form')
+            .find('.test-input')
+            .val('test');
+        } catch (e) {
+            chainWorked = false;
+        }
+        logTest('Method Chaining', chainWorked);
         }
 
         // Test 3: Parent Method
         function testParent() {
-            const parent = fritos('.test-input').parent('form');
-            logTest('Parent Method', parent.elements[0].id === 'test-form');
-        }
+        const parent = fritos('.test-input').parent();
+        logTest('Parent Method', 
+            parent.elements.length === 2 && 
+            parent.elements.every(p => p.classList.contains('form-group'))
+        );
+    }
 
-        // Test 4: Ancestor Method
-        function testAncestor() {
-            const ancestor = fritos('.item-image').ancestor('main');
-            logTest('Ancestor Method', ancestor.elements.length === 1 && 
-                ancestor.elements[0].tagName.toLowerCase() === 'main');
+    // Test 4: Ancestor Method
+    function testAncestor() {
+        const ancestor = fritos('.item-image').ancestor('main');
+        logTest('Ancestor Method', ancestor.elements.length === 1 && 
+            ancestor.elements[0].tagName.toLowerCase() === 'main');
         }
 
         // Test 5: Animation
         function testAnimate() {
-            const element = fritos('.moveable-item');
+        const element = fritos('.moveable-item');
+        element.animate({
+            transform: 'translateX(100px)'
+        }, {
+            duration: 1000,
+            easing: 'linear'
+        });
+        logTest('Animation', element.elements[0].style.animation !== '');
+    }
+
+    // Test 5b: Animation Completion
+    async function testAnimationCompletion() {
+        const element = fritos('.moveable-item');
+        let animationCompleted = false;
+
+        await new Promise(resolve => {
             element.animate({
-                transform: 'translateX(100px)'
+            transform: 'translateX(100px)'
             }, {
-                duration: 1000,
-                easing: 'linear'
+            duration: 10,  // Short duration for testing
+            easing: 'linear'
             });
-            logTest('Animation', element.elements[0].style.animation !== '');
-        }
 
-        // Test 6: Find Method
-        function testFind() {
-            const items = fritos('.items').find('.item');
-            logTest('Find Method', items.elements.length === 2);
-        }
+            element.elements[0].addEventListener('animationend', () => {
+            const computedStyle = getComputedStyle(element.elements[0]);
+            animationCompleted = computedStyle.transform === 'matrix(1, 0, 0, 1, 100, 0)';
+            resolve();
+            });
+        });
 
-        // Test 7: Event Handling
-        function testOnEvent() {
-            let eventWorked = false;
-            const input = fritos('.test-input');
-            input.onEvent('input', () => eventWorked = true);
-            const event = new Event('input');
-            input.elements[0].dispatchEvent(event);
-            logTest('Event Handling', eventWorked);
-        }
+        logTest('Animation Completion', animationCompleted);
+    }
 
-        // Test 8: Remote Call
-        async function testRemoteCall() {
-            try {
-                await new Promise((resolve, reject) => {
-                    fritos.remoteCall('https://serene-island-81305-6082ab8ef713.herokuapp.com/api/200', {
-                        method: 'GET',
-                        onSuccess: () => resolve(),
-                        onError: (err) => reject(err)
-                    });
-                });
-                logTest('Remote Call', true);
-            } catch (e) {
-                logTest('Remote Call', false, e.message);
-            }
-        }
+    // Test 6: Find Method
+    function testFind() {
+        const items = fritos('.items').find('.item');
+        logTest('Find Method', items.elements.length === 2);
+    }
 
-        // Test 9: Raise Method
-        function testRaise() {
-            const originalParent = fritos('.test-input').elements[0].parentNode;
-            fritos('.test-input').raise();
-            const newParent = fritos('.test-input').elements[0].parentNode;
-            logTest('Raise Method', originalParent !== newParent);
-        }
+    // Test 7: Event Handling
+    function testOnEvent() {
+        let eventWorked = false;
+        const input = fritos('.test-input');
+        input.onEvent('input', () => eventWorked = true);
+        const event = new Event('input');
+        input.elements[0].dispatchEvent(event);
+        logTest('Event Handling', eventWorked);
+    }
 
-        // Test 10: Attrs Method
-        function testAttrs() {
-            fritos('.test-input').attrs('data-test', 'test-value');
-            const hasAttr = fritos('.test-input').elements[0].getAttribute('data-test') === 'test-value';
-            logTest('Attrs Method', hasAttr);
+    // Test 8: Remote Call
+    async function testRemoteCall() {
+        try {
+            await new Promise((resolve, reject) => {
+            fritos.remoteCall('https://serene-island-81305-6082ab8ef713.herokuapp.com/api/200', {
+                method: 'GET',
+                onSuccess: () => resolve(),
+                onError: (err) => reject(err)
+            });
+            });
+            logTest('Remote Call', true);
+        } catch (e) {
+            logTest('Remote Call', false, e.message);
         }
+    }
 
-        // Test 11: Val Method
-        function testVal() {
-            fritos('.test-input').val('test-value');
-            const value = fritos('.test-input').val();
-            logTest('Val Method', value === 'test-value');
-        }
+    // Test 9: Raise Method
+    function testRaise() {
+        const originalParent = fritos('.test-input').elements[0].parentNode;
+        fritos('.test-input').raise();
+        const newParent = fritos('.test-input').elements[0].parentNode;
+        logTest('Raise Method', originalParent !== newParent);
+    }
 
-        // Run all tests
-        async function runTests() {
-            testQuerySelector();
-            testChaining();
-            testParent();
-            testAncestor();
-            testAnimate();
-            testFind();
-            testOnEvent();
-            await testRemoteCall();
-            testRaise();
-            testAttrs();
-            testVal();
-        }
+    // Test 10: Attrs Method
+    function testAttrs() {
+        fritos('.test-input').attrs('data-test', 'test-value');
+        const hasAttr = fritos('.test-input').elements[0].getAttribute('data-test') === 'test-value';
+        logTest('Attrs Method', hasAttr);
+    }
 
-        // Run tests when page loads
-        window.onload = runTests;
+    // Test 11: Val Method
+    function testVal() {
+        fritos('.test-input').val('test-value');
+        const value = fritos('.test-input').val();
+        logTest('Val Method', value === 'test-value');
+    }
+
+    // Run all tests
+    async function runTests() {
+        testQuerySelector();
+        testChaining();
+        testParent();
+        testAncestor();
+        testAnimate();
+        testFind();
+        testOnEvent();
+        await testRemoteCall();
+        testRaise();
+        testAttrs();
+        testVal();
+    }
+
+    // Run tests when page loads
+    window.onload = runTests;
     </script>
 </body>
 </html>

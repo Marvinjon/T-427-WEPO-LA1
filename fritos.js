@@ -14,13 +14,20 @@ const fritos = (function() {
     
     // Method to return a list of all parents of the elements within the result set
     Fritos.prototype.parent = function(selector = null) {
-        const parents = [...new Set(this.elements.map(el => el.parentNode).filter(p => p))];
+        // Ensure we only consider element nodes (nodeType === 1)
+        const parents = [...new Set(
+            this.elements
+                .map(el => el.parentNode)
+                .filter(p => p && p.nodeType === 1)
+        )];
         if (!selector) return new Fritos(parents);
         return new Fritos(
             parents.filter(p =>
-                selector.startsWith('#') ? p.id === selector.slice(1) :
-                selector.startsWith('.') ? p.classList.contains(selector.slice(1)) :
-                p.tagName.toLowerCase() === selector.toLowerCase()
+                selector.startsWith('#')
+                    ? p.id === selector.slice(1)
+                    : selector.startsWith('.')
+                        ? p.classList.contains(selector.slice(1))
+                        : p.tagName.toLowerCase() === selector.toLowerCase()
             )
         );
     };
@@ -36,8 +43,8 @@ const fritos = (function() {
                     ancestors.add(currentNode);
                 } else {
                     if (
-                        selector.startsWith('#') && currentNode.id === selector.slice(1) ||
-                        selector.startsWith('.') && currentNode.classList.contains(selector.slice(1)) ||
+                        (selector.startsWith('#') && currentNode.id === selector.slice(1)) ||
+                        (selector.startsWith('.') && currentNode.classList.contains(selector.slice(1))) ||
                         currentNode.tagName.toLowerCase() === selector.toLowerCase()
                     ) {
                         ancestors.add(currentNode);
@@ -71,12 +78,12 @@ const fritos = (function() {
             const keyframes = `
                 @keyframes fritos-animation {
                     to {
-                    ${Object.entries(keyframeProperties)
+                        ${Object.entries(keyframeProperties)
                         .map(([key, value]) => `${key}: ${value};`)
                         .join('\n')}
                     }
                 }
-                `;
+            `;
     
             const styleSheet = document.createElement('style');
             styleSheet.textContent = keyframes;
@@ -176,11 +183,14 @@ const fritos = (function() {
         });
         return this;
     };
-    
-    // Return a new instance of Fritos
-    return function(selector) {
+
+    // Create the function to export and attach the static remoteCall
+    const f = function(selector) {
         return new Fritos(selector);
     };
+    f.remoteCall = Fritos.remoteCall;
+    
+    return f;
 })();
 
 export default fritos;
