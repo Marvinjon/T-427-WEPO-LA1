@@ -119,7 +119,7 @@ const fritos = (function() {
     };
     
     // Static method to perform remote calls
-    Fritos.remoteCall = function(url, options) {
+    Fritos.remoteCall = function (url, options) {
         const {
             method = 'GET',
             timeout = 45,
@@ -138,7 +138,12 @@ const fritos = (function() {
             body,
             signal: controller.signal
         })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+                }
+                return response.clone().json().catch(() => response.text()); // Handles non-JSON responses
+            })
             .then(data => {
                 clearTimeout(timeoutId);
                 onSuccess(data);
@@ -148,6 +153,73 @@ const fritos = (function() {
                 onError(error);
             });
     };
+    
+
+    Fritos.prototype.validation = function (rules) {
+        if (this.elements.length === 0) return { valid: false, errors: ["No element found"] };
+    
+        const element = this.elements[0];
+        if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(element.tagName)) {
+            return { valid: false, errors: ["Element is not a valid input field"] };
+        }
+    
+        const value = element.value.trim();
+        const errors = [];
+    
+        // Required check first (Prevents empty values from failing pattern validation)
+        if (rules.required && value === "") {
+            errors.push("This field is required");
+        }
+    
+        // Min length check
+        if (rules.minLength && value.length < rules.minLength && value !== "") {
+            errors.push(`Minimum length is ${rules.minLength} characters`);
+        }
+    
+        // Max length check
+        if (rules.maxLength && value.length > rules.maxLength) {
+            errors.push(`Maximum length is ${rules.maxLength} characters`);
+        }
+    
+        // Pattern check (Only runs if value is non-empty)
+        if (rules.pattern && value !== "") {
+            try {
+                const regex = new RegExp(rules.pattern);
+                if (!regex.test(value)) {
+                    errors.push("Invalid format");
+                }
+            } catch (e) {
+                errors.push("Invalid pattern provided");
+            }
+        }
+    
+        return {
+            valid: errors.length === 0,
+            errors: errors
+        };
+    };    
+    
+    Fritos.prototype.hide = function () {
+        this.elements.forEach(element => {
+            element.style.display = 'none';
+        });
+        return this;
+    };
+
+    Fritos.prototype.prune = function () {
+        this.elements.forEach(element => {
+            const parent = element.parentNode;
+            if (parent && parent.parentNode) {
+                while (element.firstChild) {
+                    parent.parentNode.insertBefore(element.firstChild, parent);
+                }
+                parent.remove();
+            }
+        });
+        return this;
+    };
+    
+    
     
     // Method to raise elements
     Fritos.prototype.raise = function(level = 1) {
