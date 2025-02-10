@@ -1,15 +1,21 @@
 const fritos = (function() {
     // Constructor function for fritos
     function Fritos(query) {
-        this.elements = document.querySelectorAll(query);
+        if (typeof query === 'string') {
+            this.elements = Array.from(document.querySelectorAll(query));
+        } else if (query instanceof Element) {
+            this.elements = [query];
+        } else if (Array.isArray(query)) {
+            this.elements = query;
+        } else {
+            this.elements = [];
+        }
     }
-
+    
     // Method to return a list of all parents of the elements within the result set
     Fritos.prototype.parent = function(selector = null) {
         const parents = [...new Set(this.elements.map(el => el.parentNode).filter(p => p))];
-
         if (!selector) return new Fritos(parents);
-
         return new Fritos(
             parents.filter(p =>
                 selector.startsWith('#') ? p.id === selector.slice(1) :
@@ -19,63 +25,162 @@ const fritos = (function() {
         );
     };
 
-    // Method to return a list of all ancestors of the elements within the result set
-    Fritos.prototype.ancestor = function(cssProperties, animationOptions) {
-        // Implementation goes here
+    // Method to return a list of all ancestors of the elements
+    Fritos.prototype.ancestor = function(selector = null) {
+        const ancestors = new Set();
+        
+        this.elements.forEach(element => {
+            let currentNode = element.parentNode;
+            while (currentNode !== null && currentNode !== document.documentElement) {
+                if (!selector) {
+                    ancestors.add(currentNode);
+                } else {
+                    if (
+                        selector.startsWith('#') && currentNode.id === selector.slice(1) ||
+                        selector.startsWith('.') && currentNode.classList.contains(selector.slice(1)) ||
+                        currentNode.tagName.toLowerCase() === selector.toLowerCase()
+                    ) {
+                        ancestors.add(currentNode);
+                    }
+                }
+                currentNode = currentNode.parentNode;
+            }
+        });
+        
+        return new Fritos(Array.from(ancestors));
     };
-
+    
     // Method to animate elements
     Fritos.prototype.animate = function(cssProperties, animationOptions) {
-        // Implementation goes here
+        const {
+            duration = 1000,
+            delay = '0s',
+            easing = 'linear',
+            iterationCount = 1,
+            fillMode = 'none'
+        } = animationOptions || {};
+    
+        this.elements.forEach(element => {
+            const keyframeProperties = {};
+            Object.entries(cssProperties).forEach(([key, value]) => {
+                keyframeProperties[key.replace(/([A-Z])/g, '-$1').toLowerCase()] = value;
+            });
+    
+            element.style.animation = `fritos-animation ${duration}ms ${easing} ${delay} ${iterationCount} ${fillMode}`;
+            
+            const keyframes = `
+                @keyframes fritos-animation {
+                    to {
+                    ${Object.entries(keyframeProperties)
+                        .map(([key, value]) => `${key}: ${value};`)
+                        .join('\n')}
+                    }
+                }
+                `;
+    
+            const styleSheet = document.createElement('style');
+            styleSheet.textContent = keyframes;
+            document.head.appendChild(styleSheet);
+    
+            element.addEventListener('animationend', () => {
+                styleSheet.remove();
+            }, { once: true });
+        });
+    
+        return this;
     };
-
+    
     // Method to find child elements
     Fritos.prototype.find = function(selector) {
-        // Implementation goes here
+        if (!selector) return new Fritos([]);
+        
+        const results = [];
+        this.elements.forEach(element => {
+            const found = element.querySelectorAll(selector);
+            results.push(...found);
+        });
+        
+        return new Fritos(results);
     };
-
+    
     // Method to attach event listeners
     Fritos.prototype.onEvent = function(eventType, eventFunction) {
-        // Implementation goes here
+        this.elements.forEach(element => {
+            element.addEventListener(eventType, eventFunction);
+        });
+        return this;
     };
-
+    
     // Static method to perform remote calls
-    Fritos.remoteCall = function(url, requestOptions) {
-        // Implementation goes here
+    Fritos.remoteCall = function(url, options) {
+        const {
+            method = 'GET',
+            timeout = 45,
+            headers = {},
+            body = null,
+            onSuccess = () => {},
+            onError = () => {}
+        } = options;
+    
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout * 1000);
+    
+        fetch(url, {
+            method,
+            headers,
+            body,
+            signal: controller.signal
+        })
+            .then(response => response.json())
+            .then(data => {
+                clearTimeout(timeoutId);
+                onSuccess(data);
+            })
+            .catch(error => {
+                clearTimeout(timeoutId);
+                onError(error);
+            });
     };
-
-    // Method to validate form elements
-    Fritos.prototype.validation = function(validationProperties) {
-        // Implementation goes here
-    };
-
-    // Method to hide elements
-    Fritos.prototype.hide = function() {
-        // Implementation goes here
-    };
-
-    // Method to prune elements
-    Fritos.prototype.prune = function() {
-        // Implementation goes here
-    };
-
+    
     // Method to raise elements
     Fritos.prototype.raise = function(level = 1) {
-        // Implementation goes here
+        for (let i = 0; i < level; i++) {
+            this.elements.forEach(element => {
+                const parent = element.parentNode;
+                if (parent && parent.parentNode) {
+                    const grandParent = parent.parentNode;
+                    grandParent.insertBefore(element, parent);
+                    grandParent.insertBefore(parent, element.nextSibling);
+                }
+            });
+        }
+        return this;
     };
-
-    // Method to set or get attributes
-    Fritos.prototype.attrs = function(attributeName, attributeValue) {
-        // Implementation goes here
+    
+    // Method to set attributes
+    Fritos.prototype.attrs = function(name, value) {
+        this.elements.forEach(element => {
+            element.setAttribute(name, value);
+        });
+        return this;
     };
-
+    
     // Method to set or get values
     Fritos.prototype.val = function(value) {
-        // Implementation goes here
+        if (value === undefined) {
+            return this.elements[0]?.value;
+        }
+        
+        this.elements.forEach(element => {
+            element.value = value;
+        });
+        return this;
     };
-
+    
     // Return a new instance of Fritos
     return function(selector) {
         return new Fritos(selector);
     };
 })();
+
+export default fritos;
